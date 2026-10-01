@@ -1,39 +1,41 @@
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.JSInterop;
 using PrintCostCalculator.Core.Models;
 using System.Text.Json;
 
 namespace PrintCostCalculator.Web.Services;
 
 /// <summary>
-/// Stores the last inputs in the browser's local storage (private-encrypted by Blazor).
+/// Stores the last inputs in the browser's local storage.
 /// Swap this class in DI for a different storage (e.g. a database) if needed.
 /// </summary>
 public class BrowserUserInputStore : IUserInputStore
 {
     private const string StorageKey = "printCostCalculatorLastInputs";
 
-    private readonly ProtectedLocalStorage _browserLocalStorage;
+    private readonly IJSRuntime _browserJavascript;
 
-    public BrowserUserInputStore(ProtectedLocalStorage browserLocalStorage)
+    public BrowserUserInputStore(IJSRuntime browserJavascript)
     {
-        _browserLocalStorage = browserLocalStorage;
+        _browserJavascript = browserJavascript;
     }
 
     public async Task<SavedPrintCostInput?> LoadAsync()
     {
         try
         {
-            var storedJson = await _browserLocalStorage.GetAsync<string>(StorageKey);
-            if (!storedJson.Success || storedJson.Value is null)
+            var storedJson = await _browserJavascript.InvokeAsync<string>(
+                "localStorage.getItem", StorageKey);
+
+            if (string.IsNullOrEmpty(storedJson))
             {
                 return null;
             }
 
-            return JsonSerializer.Deserialize<SavedPrintCostInput>(storedJson.Value);
+            return JsonSerializer.Deserialize<SavedPrintCostInput>(storedJson);
         }
-        catch
+        catch (JSDisconnectedException)
         {
-            // Storage might be unavailable (private mode, first render on server).
+            // Blazor circuit not ready yet (e.g. prerendering) — nothing saved.
             return null;
         }
     }
@@ -49,6 +51,7 @@ public class BrowserUserInputStore : IUserInputStore
             currencyCode);
 
         var json = JsonSerializer.Serialize(dataToStore);
-        await _browserLocalStorage.SetAsync(StorageKey, json);
+
+        await _browserJavascript.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
     }
 }

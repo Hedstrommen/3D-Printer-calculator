@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#0f766e" />
+    <meta name="description" content="Calculate what your 3D print costs to make and what to sell it for." />
+    <title>3D Print Price Calculator</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+        /* Loading splash shown until the WASM app has started up. */
+        #loading-splash {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: "Segoe UI", system-ui, sans-serif;
+            color: #134e4a;
+            gap: 1rem;
+        }
+        .loading-spinner {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 5px solid #ccfbf1;
+            border-top-color: #14b8a6;
+            animation: loading-spin 0.9s linear infinite;
+        }
+        @@keyframes loading-spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="loading-splash">
+            <div class="loading-spinner"></div>
+            <p>Loading the calculator…</p>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>navigator.serviceWorker && navigator.serviceWorker.register('service-worker.js');</script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+</html>

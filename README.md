@@ -1,8 +1,10 @@
 # 3D Print Price Calculator
 
-A web app (usable on both desktop and phone) for calculating what a 3D print costs to make — and what you should sell it for.
+A web app for calculating what a 3D print costs to make — and what you should sell it for.
 
-Built in C# with ASP.NET Core (Blazor Server) and dependency injection throughout.
+Runs **entirely in the browser** (C# via Blazor WebAssembly): no server, no hosting cost, and it **works offline** after your first visit.
+
+**Try it live:** `https://hedstrommen.github.io/3D-Printer-calculator/` (once GitHub Pages is enabled — see below)
 
 ## Features
 
@@ -12,23 +14,33 @@ Built in C# with ASP.NET Core (Blazor Server) and dependency injection throughou
 - **Optional printer-hour cost** — electricity and wear based on print duration
 - **Currency switch** — SEK (default), EUR, USD
 - **Remembers your inputs** — saved in your browser between visits
-- **Phone-friendly** — installable as an app (PWA), responsive layout
+- **Works offline** — after the first visit it runs without internet (PWA service worker)
+- **Phone-friendly** — installable as an app from the browser, responsive layout
 - **Green & teal theme** with soft animations
 
-## Run it
+## Run it locally
 
 Requires the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
 
 ```bash
-cd src/PrintCostCalculator.Web
-dotnet run
+dotnet run --project src/PrintCostCalculator.Web
 ```
 
-Then open the URL it prints (usually `http://localhost:5000`). Open the same URL on your phone (same Wi-Fi) to use it there, or host it anywhere ASP.NET Core runs.
+## Publish it on the web (GitHub Pages, free)
 
-### Run it on the web (Azure App Service)
+The repository contains `.github/workflows/deploy-github-pages.yml`, which builds, tests, and publishes the app as a static site on every push to `main`.
 
-The repo includes a GitHub Actions workflow that builds, tests, and auto-deploys to Azure on every push to `main`. See [docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md) for the one-time setup guide (~10 minutes).
+One-time setup (you do this in GitHub, ~2 minutes):
+
+1. Go to the repo on GitHub → **Settings** → **Pages**.
+2. Under **Build and deployment** → **Source**, pick **GitHub Actions**.
+3. Done. Push to `main` (or run the workflow manually from the **Actions** tab) and your app appears at:
+
+```
+https://hedstrommen.github.io/3D-Printer-calculator/
+```
+
+No Azure, no server, no cost. Open the link on your phone and choose **Add to Home Screen** — it installs like a native app and then works offline.
 
 ## Project layout
 
@@ -43,12 +55,12 @@ src/
       PrintCostCalculatorService.cs   # The default implementation
       PrintPriceFormatter.cs         # Currency formatting (SEK/EUR/USD)
 
-  PrintCostCalculator.Web/           # The web UI (Blazor Server)
+  PrintCostCalculator.Web/           # The web UI (Blazor WebAssembly, static)
     Components/Pages/CalculatorPage.razor   # The whole UI
     Services/
       IUserInputStore.cs            # Contract for remembering inputs
       BrowserUserInputStore.cs      # Browser local-storage implementation
-    wwwroot/css/app.css              # Green & teal theme
+    wwwroot/                        # Static files (index.html, CSS, PWA bits)
 ```
 
 ## How the price is calculated
@@ -69,4 +81,4 @@ Everything is wired through dependency injection in `src/PrintCostCalculator.Web
 builder.Services.AddScoped<IPrintCostCalculator, PrintCostCalculatorService>();
 ```
 
-Want a different pricing model? Write a new `IPrintCostCalculator` implementation and swap one line. Same goes for the input store (save to a database instead of the browser) and the currency formatter.
+Want a different pricing model? Write a new `IPrintCostCalculator` implementation and swap one line. Same goes for the input store (save somewhere else instead of the browser) and the currency formatter.

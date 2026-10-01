@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Redirecting…</title>
+    <!-- GitHub Pages SPA redirect trick: copies the requested path into
+         the session so index.html can restore it after the redirect. -->
+    <script>
+        (function () {
+            var targetPath = sessionStorage.redirectPath || "/";
+            delete sessionStorage.redirectPath;
+            window.location.replace(targetPath);
+        })();
+    </script>
+</head>
+<body>
+    <p>Redirecting to the calculator…</p>
+</body>
+</html>

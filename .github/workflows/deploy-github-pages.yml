@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+# Deploys the Blazor WebAssembly app as a static site — no server needed.
+# The app runs entirely in the browser and works offline after first visit.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  PROJECT_PATH: src/PrintCostCalculator.Web/PrintCostCalculator.Web.csproj
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Run tests
+        run: dotnet test
+
+      - name: Publish the app
+        run: dotnet publish ${{ env.PROJECT_PATH }} -c Release -o publish-output
+
+      # GitHub Pages serves a project site under /3D-Printer-calculator/,
+      # so the app's base href must match that path.
+      - name: Set the correct base path for GitHub Pages
+        run: sed -i 's|<base href="/" />|<base href="/3D-Printer-calculator/" />|' publish-output/wwwroot/index.html
+
+      # GitHub Pages shows 404.html for unknown paths; it redirects deep
+      # links back to index.html (see wwwroot/404.html).
+      - name: Add the SPA 404 redirect page
+        run: cp publish-output/wwwroot/index.html publish-output/wwwroot/404.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: publish-output/wwwroot
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
