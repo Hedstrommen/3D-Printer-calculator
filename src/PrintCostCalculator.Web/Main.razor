@@ -1,11 +1,11 @@
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        <RouteView RouteData="routeData" DefaultLayout="typeof(PrintCostCalculator.Web.Components.Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
     <NotFound>
         <PageTitle>Page not found</PageTitle>
-        <LayoutView Layout="typeof(Layout.MainLayout)">
+        <LayoutView Layout="typeof(PrintCostCalculator.Web.Components.Layout.MainLayout)">
             <div class="card">
                 <h1>Page not found 😕</h1>
                 <p>That page doesn't exist. <a href="/">Back to the calculator</a></p>
