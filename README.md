@@ -26,6 +26,10 @@ dotnet run
 
 Then open the URL it prints (usually `http://localhost:5000`). Open the same URL on your phone (same Wi-Fi) to use it there, or host it anywhere ASP.NET Core runs.
 
+### Run it on the web (Azure App Service)
+
+The repo includes a GitHub Actions workflow that builds, tests, and auto-deploys to Azure on every push to `main`. See [docs/DEPLOY-AZURE.md](docs/DEPLOY-AZURE.md) for the one-time setup guide (~10 minutes).
+
 ## Project layout
 
 ```
