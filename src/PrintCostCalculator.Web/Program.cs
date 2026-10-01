@@ -7,7 +7,7 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
 // Mount the app (Main.razor, which contains the Router) into the
 // <div id="app"> element in wwwroot/index.html.
-builder.RootComponents.Add<Main>("#app");
+builder.RootComponents.Add<PrintCostCalculator.Web.Main>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 // ---- Dependency injection ----
