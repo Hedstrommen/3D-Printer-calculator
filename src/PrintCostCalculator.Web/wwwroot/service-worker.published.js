@@ -1,79 +1,126 @@
-// The deployed service worker: caches the whole app so the calculator
-// works fully OFFLINE after your first visit (on the web or installed as an app).
-// The build injects self.assetManifest with the list of app files.
+// The deployed service worker: makes the calculator work OFFLINE after the
+// first visit, while still applying updates immediately on the next visit.
+//
+// How updates stay fresh:
+//   - index.html (and other non-hashed files like CSS/JS) are fetched from
+//     the network first, falling back to the cache only when offline.
+//   - The /_framework/ files have content-hashed names (e.g. PrintCostCalculator.Web.assembly.bin),
+//     so a new build gets new URLs and can never be stale. Those are served
+//     from the cache first — instant offline startup.
+//
+// The build generates service-worker-assets.js (a list of all app files),
+// which is loaded before this file and read here as self.assetsManifest.
 
-self.addEventListener('install', async (event) => {
-    async function addUnknownCacheEntries(cache) {
-        const cacheEntries = [];
-        const assetManifest = self.assetManifest || [];
-        for (const asset of assetManifest) {
-            if (!asset.url || !asset.url.endsWith('/')) {
-                cacheEntries.push(new Request(asset.url, { cache: 'reload' }));
-            }
-        }
-        await Promise.all(cacheEntries.map((entry) => cache.add(entry)));
-    }
+const CACHE_NAME = 'print-cost-calculator-v2';
 
-    event.waitUntil(
-        (async () => {
-            const cache = await caches.open(cacheName);
-            await addUnknownCacheEntries(cache);
-        })()
-    );
-}, false);
+self.addEventListener('install', (event) => {
+    event.waitUntil((async () => {
+        const cache = await caches.open(CACHE_NAME);
+
+        const manifest = self.assetsManifest || [];
+        const filesToPrecache = manifest
+            .map((manifestEntry) => manifestEntry && (manifestEntry.url || manifestEntry))
+            .filter((fileUrl) => fileUrl && !fileUrl.endsWith('/'));
+
+        await Promise.all(
+            filesToPrecache.map((fileUrl) => cache.add(new Request(fileUrl, { cache: 'reload' })))
+        );
+    })());
+
+    self.skipWaiting();
+});
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        (async () => {
-            const keys = await caches.keys();
-            await Promise.all(keys.filter((key) => key.startsWith(cacheNamePrefix) && key !== cacheName).map((key) => caches.delete(key)));
-        })()
-    );
-}, false);
+    event.waitUntil((async () => {
+        // Delete every cache from older versions of this service worker.
+        const allCacheNames = await caches.keys();
+        await Promise.all(
+            allCacheNames
+                .filter((cacheName) => cacheName !== CACHE_NAME)
+                .map((cacheName) => caches.delete(cacheName))
+        );
 
-const cacheNamePrefix = 'blazor-resources-v';
-const cacheName = `${cacheNamePrefix}${self.assetsManifest ? self.assetsManifest.id : '1'}`;
-
-self.addEventListener('message', (event) => {
-    if (event.data === 'SKIP_PWA_WAITING') {
-        self.skipWaiting();
-    }
+        await self.clients.claim();
+    })());
 });
 
 self.addEventListener('fetch', (event) => {
-    if (event.request.method !== 'GET' || event.request.headers.has('range') || event.request.mode === 'websocket') {
+    const request = event.request;
+
+    if (request.method !== 'GET') {
         return;
     }
 
-    const shouldServeIndexHtml = event.request.mode === 'navigate';
-    const request = shouldServeIndexHtml ? new Request('index.html', { cache: 'reload' }) : event.request;
-    const shouldCache = event.request.method === 'GET' && event.request.url.startsWith(self.location.origin) && !event.request.url.includes('/api/');
+    const requestUrl = new URL(request.url);
+    if (requestUrl.origin !== self.location.origin) {
+        return;
+    }
 
-    event.respondWith(
-        (async () => {
-            const cache = await caches.open(cacheName);
-            const cachedResponse = await cache.match(request);
-            if (cachedResponse && !shouldServeIndexHtml) {
-                return cachedResponse;
-            }
+    // Opening the app = a navigation request. Always try the network first
+    // so the user gets the newest version without needing a hard refresh.
+    if (request.mode === 'navigate') {
+        event.respondWith(networkFirstForIndexPage());
+        return;
+    }
 
-            try {
-                const networkResponse = await fetch(request);
-                if (shouldCache && networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-                    const clonedResponse = networkResponse.clone();
-                    await cache.put(request, clonedResponse);
-                }
-                return networkResponse;
-            } catch (error) {
-                const fallbackResponse = await cache.match(request);
-                if (fallbackResponse) {
-                    return fallbackResponse;
-                }
-                if (shouldServeIndexHtml) {
-                    return new Response('Offline', { status: 503, statusText: 'Offline' });
-                }
-                throw error;
-            }
-        })()
-    );
+    // Content-hashed files never change once built, so the cache is always valid.
+    if (requestUrl.pathname.includes('/_framework/')) {
+        event.respondWith(cacheFirst(request));
+        return;
+    }
+
+    // Everything else (CSS, JS, icons) can change between builds,
+    // so prefer the network and only fall back to the cache when offline.
+    event.respondWith(networkFirst(request));
 });
+
+async function networkFirstForIndexPage() {
+    const cache = await caches.open(CACHE_NAME);
+
+    try {
+        const freshIndexPage = await fetch(new Request('index.html', { cache: 'reload' }));
+        await cache.put('index.html', freshIndexPage.clone());
+        return freshIndexPage;
+    } catch {
+        const cachedIndexPage = await cache.match('index.html');
+        if (cachedIndexPage) {
+            return cachedIndexPage;
+        }
+
+        return new Response('Offline', { status: 503, statusText: 'Offline' });
+    }
+}
+
+async function cacheFirst(request) {
+    const cache = await caches.open(CACHE_NAME);
+
+    const cachedResponse = await cache.match(request);
+    if (cachedResponse) {
+        return cachedResponse;
+    }
+
+    const freshResponse = await fetch(request);
+    if (freshResponse && freshResponse.status === 200) {
+        await cache.put(request, freshResponse.clone());
+    }
+    return freshResponse;
+}
+
+async function networkFirst(request) {
+    const cache = await caches.open(CACHE_NAME);
+
+    try {
+        const freshResponse = await fetch(new Request(request, { cache: 'reload' }));
+        if (freshResponse && freshResponse.status === 200) {
+            await cache.put(request, freshResponse.clone());
+        }
+        return freshResponse;
+    } catch {
+        const cachedResponse = await cache.match(request);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+
+        return new Response('Offline', { status: 503, statusText: 'Offline' });
+    }
+}
