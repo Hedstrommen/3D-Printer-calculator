@@ -1,0 +1,169 @@
+@page "/"
+@inject PrintCostCalculator.Core.Services.IPrintCostCalculator CostCalculator
+@inject PrintCostCalculator.Core.Services.PrintPriceFormatter PriceFormatter
+@inject PrintCostCalculator.Web.Services.IUserInputStore UserInputStore
+
+<PageTitle>3D Print Price Calculator</PageTitle>
+
+<div class="calculator-page">
+    <header class="page-header fade-in">
+        <h1>🖨️ 3D Print Price Calculator</h1>
+        <p class="subtitle">Figure out what your print actually costs — and what to sell it for.</p>
+    </header>
+
+    <div class="calculator-layout">
+        @* ---------- LEFT: the inputs ---------- *@
+        <section class="card input-card fade-in delay-1">
+            <h2>Filament</h2>
+
+            <div class="form-field">
+                <label for="filamentPriceInput">Spool purchase price</label>
+                <input id="filamentPriceInput" type="number" step="0.01" min="0"
+                       @bind="userInput.FilamentPurchasePrice" @bind:after="RecalculatePrice" />
+                <span class="hint">What you paid for the spool (e.g. 249)</span>
+            </div>
+
+            <div class="form-field">
+                <label for="spoolWeightInput">Spool weight (grams)</label>
+                <input id="spoolWeightInput" type="number" step="1" min="1"
+                       @bind="userInput.FilamentSpoolWeightInGrams" @bind:after="RecalculatePrice" />
+                <span class="hint">Usually 1000 g, sometimes 750 g</span>
+            </div>
+
+            <div class="form-field">
+                <label for="modelWeightInput">Model weight (grams)</label>
+                <input id="modelWeightInput" type="number" step="0.1" min="0"
+                       @bind="userInput.ModelWeightInGrams" @bind:after="RecalculatePrice" />
+                <span class="hint">From your slicer (e.g. 55 g)</span>
+            </div>
+
+            <h2>Sales</h2>
+
+            <div class="form-field">
+                <label for="multiplierInput">Sales multiplier</label>
+                <input id="multiplierInput" type="number" step="0.1" min="0.1"
+                       @bind="userInput.SalesMultiplier" @bind:after="RecalculatePrice" />
+                <span class="hint">3.0 = sell for triple the cost</span>
+            </div>
+
+            <div class="form-field">
+                <label for="fixedFeeInput">Extra fixed fee per print (optional)</label>
+                <input id="fixedFeeInput" type="number" step="0.01" min="0"
+                       @bind="userInput.ExtraFixedFeePerPrint" @bind:after="RecalculatePrice" />
+                <span class="hint">Machine wear, nozzle replacement, etc.</span>
+            </div>
+
+            <h2>Printer time (optional)</h2>
+
+            <div class="form-field">
+                <label for="hourlyCostInput">Cost per printer hour</label>
+                <input id="hourlyCostInput" type="number" step="0.01" min="0"
+                       @bind="userInput.CostPerPrinterHour" @bind:after="RecalculatePrice" />
+                <span class="hint">Electricity + wear per hour</span>
+            </div>
+
+            <div class="form-field">
+                <label for="printDurationInput">Print duration (hours)</label>
+                <input id="printDurationInput" type="number" step="0.1" min="0"
+                       @bind="userInput.PrintDurationInHours" @bind:after="RecalculatePrice" />
+                <span class="hint">From your slicer (e.g. 4.5)</span>
+            </div>
+
+            <div class="form-field">
+                <label for="currencySelect">Currency</label>
+                <select id="currencySelect" @bind="selectedCurrencyCode" @bind:after="RecalculatePrice">
+                    @foreach (var currencyCode in availableCurrencyCodes)
+                    {
+                        <option value="@currencyCode">@currencyCode</option>
+                    }
+                </select>
+            </div>
+        </section>
+
+        @* ---------- RIGHT: the result ---------- *@
+        <section class="card result-card fade-in delay-2">
+            <h2>Price breakdown</h2>
+
+            <div class="breakdown">
+                <div class="breakdown-row">
+                    <span>Material cost</span>
+                    <span class="amount">@FormatPrice(latestResult.MaterialCost)</span>
+                </div>
+                @if (latestResult.FixedFeeCost > 0)
+                {
+                    <div class="breakdown-row">
+                        <span>Fixed fee</span>
+                        <span class="amount">@FormatPrice(latestResult.FixedFeeCost)</span>
+                    </div>
+                }
+                @if (latestResult.TimeCost > 0)
+                {
+                    <div class="breakdown-row">
+                        <span>Printer time cost</span>
+                        <span class="amount">@FormatPrice(latestResult.TimeCost)</span>
+                    </div>
+                }
+                <div class="breakdown-row total-cost">
+                    <span>Total cost</span>
+                    <span class="amount">@FormatPrice(latestResult.TotalCost)</span>
+                </div>
+            </div>
+
+            <div class="selling-price highlight-box">
+                <span class="selling-label">Selling price &times; @latestResult.SalesMultiplier</span>
+                <span class="selling-amount">@FormatPrice(latestResult.SellingPrice)</span>
+            </div>
+
+            @if (userInput.FilamentSpoolWeightInGrams > 0)
+            {
+                <div class="price-per-gram">
+                    Price per gram: <strong>@FormatPrice(userInput.FilamentPurchasePrice / userInput.FilamentSpoolWeightInGrams)</strong>
+                </div>
+            }
+        </section>
+    </div>
+</div>
+
+@code {
+    private PrintCostCalculator.Core.Models.PrintCostInput userInput = new();
+    private PrintCostCalculator.Core.Models.PrintCostResult latestResult = new();
+    private string selectedCurrencyCode = "SEK";
+    private string[] availableCurrencyCodes = ["SEK", "EUR", "USD"];
+
+    private bool hasLoadedSavedInputs = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var savedInputs = await UserInputStore.LoadAsync();
+            if (savedInputs is not null)
+            {
+                userInput.FilamentPurchasePrice = savedInputs.FilamentPurchasePrice;
+                userInput.FilamentSpoolWeightInGrams = savedInputs.FilamentSpoolWeightInGrams;
+                userInput.SalesMultiplier = savedInputs.SalesMultiplier;
+                userInput.ExtraFixedFeePerPrint = savedInputs.ExtraFixedFeePerPrint;
+                userInput.CostPerPrinterHour = savedInputs.CostPerPrinterHour;
+                selectedCurrencyCode = savedInputs.CurrencyCode;
+
+                RecalculatePrice();
+                StateHasChanged();
+            }
+
+            hasLoadedSavedInputs = true;
+        }
+    }
+
+    private void RecalculatePrice()
+    {
+        latestResult = CostCalculator.CalculateCost(userInput);
+
+        // Only save once loading is done, so we don't overwrite saved data with defaults.
+        if (hasLoadedSavedInputs)
+        {
+            _ = UserInputStore.SaveAsync(userInput, selectedCurrencyCode);
+        }
+    }
+
+    private string FormatPrice(decimal amount) => PriceFormatter.Format(amount, selectedCurrencyCode);
+}

@@ -1,0 +1,275 @@
+/* ============================================================
+   3D Print Price Calculator — green & teal theme
+   Mobile-first: single column on phones, two columns on desktop.
+   ============================================================ */
+
+:root {
+    --color-teal-deep: #0f766e;
+    --color-teal: #14b8a6;
+    --color-green: #22c55e;
+    --color-green-soft: #86efac;
+    --color-mint: #ccfbf1;
+    --color-ink: #134e4a;
+    --color-text: #1f2937;
+    --color-text-soft: #4b5563;
+    --color-card: #ffffff;
+    --color-page: #f0fdf4;
+    --shadow-soft: 0 10px 30px rgba(15, 118, 110, 0.12);
+    --radius-card: 18px;
+    --radius-field: 12px;
+    --transition-soft: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: linear-gradient(160deg, var(--color-page) 0%, var(--color-mint) 100%);
+    color: var(--color-text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    padding: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* ---------- Header ---------- */
+
+.page-header {
+    text-align: center;
+    margin: 1.5rem 0 2rem;
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 5vw, 2.2rem);
+    color: var(--color-ink);
+}
+
+.subtitle {
+    color: var(--color-text-soft);
+    margin: 0.5rem 0 0;
+}
+
+/* ---------- Layout ---------- */
+
+.calculator-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+}
+
+@media (min-width: 700px) {
+    .calculator-layout {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+    }
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+    background: var(--color-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-soft);
+    padding: 1.5rem 1.25rem;
+    transition: transform var(--transition-soft), box-shadow var(--transition-soft);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(15, 118, 110, 0.18);
+}
+
+.card h2 {
+    color: var(--color-teal-deep);
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 1.5rem 0 0.75rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 2px solid var(--color-mint);
+}
+
+.card h2:first-of-type {
+    margin-top: 0;
+}
+
+/* ---------- Form fields ---------- */
+
+.form-field {
+    margin-bottom: 1rem;
+}
+
+.form-field label {
+    display: block;
+    font-weight: 600;
+    color: var(--color-ink);
+    margin-bottom: 0.35rem;
+    font-size: 0.95rem;
+}
+
+.form-field input,
+.form-field select {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    font-size: 1.05rem;
+    border: 2px solid var(--color-mint);
+    border-radius: var(--radius-field);
+    background: #f8fffb;
+    color: var(--color-text);
+    transition: border-color var(--transition-soft), box-shadow var(--transition-soft), background var(--transition-soft);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+    outline: none;
+    border-color: var(--color-teal);
+    box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.15);
+    background: #ffffff;
+}
+
+.form-field select {
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-teal-deep) 50%),
+                      linear-gradient(135deg, var(--color-teal-deep) 50%, transparent 50%);
+    background-position: calc(100% - 20px) calc(1.35em), calc(100% - 15px) calc(1.35em);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+.hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--color-text-soft);
+    margin-top: 0.3rem;
+}
+
+/* ---------- Result card ---------- */
+
+.result-card {
+    position: sticky;
+    top: 1rem;
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.6rem 0;
+    color: var(--color-text-soft);
+    font-size: 0.98rem;
+}
+
+.breakdown-row .amount {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.breakdown-row.total-cost {
+    border-top: 2px solid var(--color-mint);
+    margin-top: 0.4rem;
+    padding-top: 0.8rem;
+    color: var(--color-ink);
+    font-weight: 700;
+}
+
+/* Selling price — the big highlight */
+
+.highlight-box {
+    margin-top: 1.25rem;
+    padding: 1.1rem;
+    border-radius: var(--radius-field);
+    background: linear-gradient(135deg, var(--color-teal) 0%, var(--color-green) 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 8px 24px rgba(34, 197, 94, 0.35);
+    transition: transform var(--transition-soft);
+}
+
+.highlight-box:hover {
+    transform: scale(1.02);
+}
+
+.selling-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.selling-amount {
+    font-size: clamp(1.8rem, 6vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.price-per-gram {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--color-text-soft);
+}
+
+/* ---------- Footer ---------- */
+
+.app-footer {
+    text-align: center;
+    padding: 1.5rem 1rem 2rem;
+    color: var(--color-teal-deep);
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* ---------- Soft entrance animations ---------- */
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fade-in-up 0.5s ease-out both;
+}
+
+.fade-in.delay-1 {
+    animation-delay: 0.08s;
+}
+
+.fade-in.delay-2 {
+    animation-delay: 0.16s;
+}
+
+/* Respect users who prefer less motion */
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

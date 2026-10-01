@@ -1,0 +1,17 @@
+{
+    "name": "3D Print Price Calculator",
+    "short_name": "Print Calc",
+    "description": "Calculate what your 3D print costs to make and what to sell it for.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f0fdf4",
+    "theme_color": "#0f766e",
+    "icons": [
+        {
+            "src": "favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
+}
